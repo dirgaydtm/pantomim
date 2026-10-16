@@ -22,6 +22,16 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+aes = "0.9.3"
+base64 = "0.23.1"
+flate2 = "1.1.10"
+hmac = "0.13.0"
+pbkdf2 = "0.13.0"
+plist = "1.10.1"
+sha1 = "0.11.0"
+sha2 = "0.11.1"
+cbc = { version = "0.2.1", features = ["alloc"] }
+hex = "0.4"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
