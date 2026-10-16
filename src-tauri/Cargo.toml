@@ -30,6 +30,7 @@ sha1 = "0.11.0"
 sha2 = "0.11.1"
 cbc = { version = "0.2.1", features = ["alloc"] }
 hex = "0.4"
+ureq = "3.4.2"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
