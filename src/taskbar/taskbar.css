@@ -1,52 +1,52 @@
 /* Windows/Taskbar.xaml: Height 40, BackgroundBrush #F0F0F0 (Templates/Colors.xaml). */
 .taskbar {
-  display: flex;
-  justify-content: flex-end;
-  height: 40px;
-  background: #f0f0f0;
+	display: flex;
+	justify-content: flex-end;
+	height: 40px;
+	background: #f0f0f0;
 }
 
 /* Clock.xaml: Foreground SecondaryTextBrush (DimGray), Padding 10,0; inner Grid Margin 5,0 with two equal rows. */
 .clock {
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  justify-items: center;
-  margin: 0 5px;
-  padding: 0 10px;
-  color: dimgray;
+	display: grid;
+	grid-template-rows: 1fr 1fr;
+	justify-items: center;
+	margin: 0 5px;
+	padding: 0 10px;
+	color: dimgray;
 }
 
 .clock .time {
-  align-self: end;
-  font-weight: bold;
+	align-self: end;
+	font-weight: bold;
 }
 
 .clock .date {
-  align-self: start;
+	align-self: start;
 }
 
 /* Templates/Buttons.xaml TaskbarButton: 1px border in the background colour, Button default Padding 1, Cursor Hand. */
 .taskbar-button {
-  box-sizing: border-box;
-  height: 40px;
-  aspect-ratio: 1;
-  padding: 1px;
-  border: 1px solid #f0f0f0;
-  background: #f0f0f0;
-  cursor: pointer;
+	box-sizing: border-box;
+	height: 40px;
+	aspect-ratio: 1;
+	padding: 1px;
+	border: 1px solid #f0f0f0;
+	background: #f0f0f0;
+	cursor: pointer;
 }
 
 .taskbar-button svg {
-  display: block;
-  width: 100%;
-  height: 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
 }
 
 .taskbar-button:hover {
-  background: lightblue;
-  border-color: dodgerblue;
+	background: lightblue;
+	border-color: dodgerblue;
 }
 
 .taskbar-button:active {
-  border: 2px solid skyblue;
+	border: 2px solid skyblue;
 }

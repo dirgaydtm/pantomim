@@ -22,7 +22,13 @@ pub fn run() {
     };
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![shell::quit])
+        .manage(shell::dialog::Dialogs::default())
+        .manage(shell::QuitPasswords::default())
+        .invoke_handler(tauri::generate_handler![
+            shell::quit,
+            shell::dialog::answer,
+            shell::dialog::fit
+        ])
         .setup(move |app| shell::open_window(app.handle(), session))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

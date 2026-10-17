@@ -1,0 +1,152 @@
+.message-box p,
+.password-dialog p {
+	margin: 0;
+}
+
+/* Windows 10 MessageBox: white message area, BackgroundBrush button strip, 88x26 buttons right-aligned. */
+.message-box {
+	/* Measured while the window is still hidden and tiny, so the width must not depend on it. */
+	width: max-content;
+	background: #fff;
+}
+
+.message-box .content {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	max-width: 500px;
+	padding: 25px 30px 25px 25px;
+}
+
+.message-box .content svg {
+	flex: none;
+	width: 32px;
+	height: 32px;
+}
+
+.message-box .buttons {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 11px;
+	background: #f0f0f0;
+}
+
+button.win32 {
+	box-sizing: border-box;
+	width: 88px;
+	height: 26px;
+	border: 1px solid #adadad;
+	background: #e1e1e1;
+	font: inherit;
+}
+
+button.win32:focus {
+	border-color: #0078d7;
+	box-shadow: inset 0 0 0 1px #0078d7;
+	outline: none;
+}
+
+button.win32:hover {
+	border-color: #0078d7;
+	background: #e5f1fb;
+}
+
+button.win32:active {
+	border-color: #005499;
+	background: #cce4f7;
+}
+
+/* Windows/PasswordDialog.xaml: Width 450, Height 200 is the outer size; the Windows 10 frame leaves 434x161. */
+.password-dialog {
+	display: grid;
+	grid-template-rows: 2fr 1fr;
+	width: 434px;
+	height: 161px;
+	background: #fff;
+}
+
+.password-dialog .content {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	min-height: 0;
+}
+
+/* ImageAwesome Icon=Key Foreground LightGray Margin 25 Rotation 90 Width 50. */
+.password-dialog .key {
+	width: 50px;
+	height: calc(100% - 50px);
+	margin: 25px;
+	fill: lightgray;
+	transform: rotate(90deg);
+}
+
+/* Margin 0,0,25,25; message wraps above the password box, Margin 0,0,0,5. */
+.password-dialog .form {
+	display: grid;
+	grid-template-rows: 1fr auto;
+	margin: 0 25px 25px 0;
+	min-height: 0;
+}
+
+.password-dialog .form p {
+	align-self: end;
+	margin-bottom: 5px;
+}
+
+/* PasswordBox Height 25, Aero2 text box border colours. */
+.password-dialog input {
+	box-sizing: border-box;
+	height: 25px;
+	padding: 0 1px;
+	border: 1px solid #abadb3;
+	font: inherit;
+	outline: none;
+}
+
+.password-dialog input:hover {
+	border-color: #7eb4ea;
+}
+
+.password-dialog input:focus {
+	border-color: #569de5;
+}
+
+/* BackgroundBrush strip; WrapPanel Margin 25,0, right-aligned, vertically centred. */
+.password-dialog .buttons {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	padding: 0 25px;
+	background: #f0f0f0;
+}
+
+/* Button Padding 10,5, MinWidth 75, Cursor Hand, Aero2 colours. */
+button.wpf {
+	min-width: 75px;
+	padding: 5px 10px;
+	border: 1px solid #707070;
+	background: #dddddd;
+	font: inherit;
+	line-height: 16px;
+	cursor: pointer;
+}
+
+button.wpf.confirm {
+	margin: 0 10px;
+}
+
+button.wpf:hover {
+	border-color: #3c7fb1;
+	background: #bee6fd;
+}
+
+button.wpf:active {
+	border-color: #2c628b;
+	background: #c4e5f6;
+}
+
+button.wpf:focus-visible {
+	outline: 1px dotted #000;
+	outline-offset: -4px;
+}

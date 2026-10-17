@@ -1,4 +1,4 @@
-use pantomim_lib::session::{is_quit_url, js_api, user_agent};
+use pantomim_lib::session::{is_quit_password, is_quit_url, js_api, user_agent};
 use plist::{Dictionary, Value};
 
 fn settings(entries: &[(&str, Value)]) -> Dictionary {
@@ -61,4 +61,14 @@ fn js_api_embeds_config_key_and_version() {
     let script = js_api(key);
     assert!(script.contains(&format!("url + \"{key}\"")));
     assert!(script.contains("\"SEB_Windows_3.10.2\""));
+}
+
+#[test]
+fn quit_password_is_sha256_hex_ignoring_case() {
+    // SHA-256("abc") from FIPS 180-2.
+    let hash = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+    assert!(is_quit_password(hash, "abc"));
+    assert!(is_quit_password(&hash.to_uppercase(), "abc"));
+    assert!(!is_quit_password(hash, "ABC"));
+    assert!(!is_quit_password(hash, ""));
 }
