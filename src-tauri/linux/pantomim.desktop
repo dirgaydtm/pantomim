@@ -6,5 +6,6 @@ Exec={{exec}} %u
 StartupWMClass={{exec}}
 Icon={{icon}}
 Terminal=false
+Categories=Education;
 NoDisplay=true
 MimeType={{mime_type}}

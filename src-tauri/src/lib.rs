@@ -28,7 +28,6 @@ enum Start {
     NoArgument,
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let start = open(std::env::args().nth(1));
 
