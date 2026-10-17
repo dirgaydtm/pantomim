@@ -38,7 +38,7 @@ pub fn open(
     let page = WebviewUrl::App(format!("index.html#{page}").into());
     // Hidden until the page has set its title and size (src/dialogs/dialog.ts).
     let mut builder = WebviewWindowBuilder::new(app, &label, page)
-        .title("pantomim")
+        .title("")
         .resizable(false)
         .minimizable(false)
         .maximizable(false)

@@ -1,4 +1,6 @@
-use pantomim_lib::session::{fullscreen, is_quit_password, is_quit_url, js_api, user_agent};
+use pantomim_lib::session::{
+    fullscreen, is_quit_password, is_quit_url, js_api, user_agent, window_title,
+};
 use plist::{Dictionary, Value};
 
 fn settings(entries: &[(&str, Value)]) -> Dictionary {
@@ -86,4 +88,22 @@ fn fullscreen_only_for_integer_view_mode_1() {
         assert!(!fullscreen(&settings(&[("browserViewMode", value)])));
     }
     assert!(!fullscreen(&settings(&[])));
+}
+
+#[test]
+fn window_title_follows_browser_window_show_url() {
+    // SEB ControlResponsibility: Control_AddressChanged shows the address for policy Always (3) and
+    // BeforeTitle (2); Control_TitleChanged shows the page title unless the policy is Always.
+    let policy = |p: i64| settings(&[("browserWindowShowURL", p.into())]);
+    let (address, title) = (Some("https://a.b/x"), Some("Quiz"));
+    for (settings, on_address, on_title) in [
+        (settings(&[]), None, title),
+        (policy(0), None, title),
+        (policy(1), None, title),
+        (policy(2), address, title),
+        (policy(3), address, None),
+    ] {
+        assert_eq!(window_title(&settings, address, None), on_address);
+        assert_eq!(window_title(&settings, None, title), on_title);
+    }
 }

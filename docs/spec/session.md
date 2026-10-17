@@ -10,6 +10,7 @@ pub fn is_quit_url(settings: &plist::Dictionary, url: &str) -> bool;
 pub fn js_api(config_key: &str) -> String;
 pub fn is_quit_password(hash: &str, password: &str) -> bool;
 pub fn fullscreen(settings: &plist::Dictionary) -> bool;
+pub fn window_title<'a>(settings: &plist::Dictionary, address: Option<&'a str>, page_title: Option<&'a str>) -> Option<&'a str>;
 ```
 
 ## `user_agent`
@@ -49,6 +50,10 @@ SEB `ClientResponsibility.IsValidQuitPassword`: the hex SHA-256 of the UTF-8 pas
 
 SEB `BrowserDataMapper.MapMainWindowMode`: the exam window is fullscreen only when `browserViewMode` is the integer `1`.
 
+## `window_title`
+
+SEB `ControlResponsibility`: the exam window title follows `browserWindowShowURL` (default 0). When the page moves to a new address, the title becomes the address for 3 (always) and 2 (before the title). When the page names itself, the title becomes that name unless the policy is 3. `None` keeps the current title.
+
 ## Test vectors
 
 1. `user_agent`:
@@ -62,3 +67,4 @@ SEB `BrowserDataMapper.MapMainWindowMode`: the exam window is fullscreen only wh
 3. `js_api` with Config Key `866101fb…7d31` in a frame at `https://brone.ub.ac.id/mod/quiz/view.php?id=68624#x`: `configKey` is `415a4047804b9b5162b8d1190176319c210927ca5423aded7c4b91b5465fef71`, the value Moodle accepted.
 4. `is_quit_password` with hash `ba7816bf…15ad` (SHA-256 of `abc`, FIPS 180-2): `abc` matches, also against the upper-case hash; `ABC` and `` do not. The Moodle Sandbox writes this same hash for quit password `abc`.
 5. `fullscreen`: `browserViewMode` = integer `1` → true; `0`, `2`, string `"1"`, `true`, or missing → false.
+6. `window_title` with address `https://a.b/x` and title `Quiz`: no setting, 0 or 1 → address keeps the title, title `Quiz`; 2 → address, then `Quiz`; 3 → address, and the page title is ignored.

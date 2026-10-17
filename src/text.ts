@@ -1,4 +1,4 @@
-// Texts from SafeExamBrowser.I18n/Data/{id,en}.xml ("SEB" becomes "pantomim"), chosen like SEB by the system language.
+// Texts from SafeExamBrowser.I18n/Data/{id,en}.xml, word for word, chosen like SEB by the system language.
 const texts = {
 	id: {
 		MessageBox_InvalidConfigurationData:
@@ -12,22 +12,22 @@ const texts = {
 		MessageBox_UnexpectedConfigurationErrorTitle: "Kesalahan Konfigurasi",
 		PasswordDialog_SettingsPasswordRequired: "Masukkan kata sandi ujian:",
 		PasswordDialog_SettingsPasswordRequiredTitle: "Kata Sandi Diperlukan",
-		// pantomim's own: SEB without an argument starts with its default configuration instead.
+		// Not from SEB, which starts with its default configuration when it gets no argument.
 		NoConfiguration:
-			'Buka pantomim lewat tombol "Launch Safe Exam Browser" di Moodle atau dengan membuka file .seb.',
-		NoConfigurationTitle: "pantomim",
+			'Buka lewat tombol "Launch Safe Exam Browser" di Moodle atau dengan membuka file .seb.',
+		NoConfigurationTitle: "",
 		MessageBox_BrowserQuitUrlConfirmation:
-			"Aplikasi peramban telah mendeteksi URL keluar! Apakah Anda ingin menghentikan pantomim sekarang?",
+			"Aplikasi peramban telah mendeteksi URL keluar! Apakah Anda ingin menghentikan SEB sekarang?",
 		MessageBox_BrowserQuitUrlConfirmationTitle: "URL Keluar Terdeteksi",
 		MessageBox_InvalidQuitPassword:
-			"pantomim hanya dapat dihentikan dengan memasukkan kata sandi keluar yang benar.",
+			"SEB hanya dapat dihentikan dengan memasukkan kata sandi keluar yang benar.",
 		MessageBox_InvalidQuitPasswordTitle: "Kata Sandi Keluar Tidak Valid",
-		MessageBox_Quit: "Apakah Anda ingin keluar dari pantomim?",
+		MessageBox_Quit: "Apakah Anda ingin keluar dari SEB?",
 		MessageBox_QuitTitle: "Keluar?",
 		PasswordDialog_Cancel: "Batal",
 		PasswordDialog_Confirm: "Konfirmasi",
 		PasswordDialog_QuitPasswordRequired:
-			"Masukkan kata sandi keluar untuk mengakhiri pantomim:",
+			"Masukkan kata sandi keluar untuk mengakhiri SEB:",
 		PasswordDialog_QuitPasswordRequiredTitle: "Kata Sandi Diperlukan",
 		Shell_QuitButton: "Hentikan Sesi",
 		// Windows MessageBox buttons, which come from Windows itself, not SEB.
@@ -48,20 +48,20 @@ const texts = {
 		PasswordDialog_SettingsPasswordRequired: "Please enter the exam password:",
 		PasswordDialog_SettingsPasswordRequiredTitle: "Password Required",
 		NoConfiguration:
-			'Open pantomim with the "Launch Safe Exam Browser" button in Moodle or by opening a .seb file.',
-		NoConfigurationTitle: "pantomim",
+			'Open it with the "Launch Safe Exam Browser" button in Moodle or by opening a .seb file.',
+		NoConfigurationTitle: "",
 		MessageBox_BrowserQuitUrlConfirmation:
-			"The browser application has detected a quit URL! Would you like to terminate pantomim now?",
+			"The browser application has detected a quit URL! Would you like to terminate SEB now?",
 		MessageBox_BrowserQuitUrlConfirmationTitle: "Quit URL Detected",
 		MessageBox_InvalidQuitPassword:
-			"pantomim can only be terminated by entering the correct quit password.",
+			"SEB can only be terminated by entering the correct quit password.",
 		MessageBox_InvalidQuitPasswordTitle: "Invalid Quit Password",
-		MessageBox_Quit: "Do you want to quit pantomim?",
+		MessageBox_Quit: "Do you want to quit SEB?",
 		MessageBox_QuitTitle: "Quit?",
 		PasswordDialog_Cancel: "Cancel",
 		PasswordDialog_Confirm: "Confirm",
 		PasswordDialog_QuitPasswordRequired:
-			"Please enter the quit password in order to terminate pantomim:",
+			"Please enter the quit password in order to terminate SEB:",
 		PasswordDialog_QuitPasswordRequiredTitle: "Password Required",
 		Shell_QuitButton: "Terminate Session",
 		Ok: "OK",

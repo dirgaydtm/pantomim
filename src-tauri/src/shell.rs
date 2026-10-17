@@ -9,7 +9,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use plist::Value;
-use tauri::webview::DownloadEvent;
+use tauri::webview::{DownloadEvent, PageLoadEvent};
 use tauri::window::WindowBuilder;
 use tauri::{
     AppHandle, LogicalPosition, LogicalSize, Manager, State, Webview, WebviewBuilder, WebviewUrl,
@@ -133,7 +133,7 @@ pub fn open_window(app: &AppHandle, session: Session) -> Result<(), Box<dyn Erro
     }
 
     let window = WindowBuilder::new(app, &label)
-        .title("pantomim")
+        .title("")
         .inner_size(1100.0, 800.0)
         .fullscreen(session::fullscreen(&session.settings))
         .build()?;
@@ -160,6 +160,7 @@ fn exam_page(
         from_browser,
     } = session;
     let config_key = configuration::config_key(&settings);
+    let (address_settings, title_settings) = (settings.clone(), settings.clone());
     let quit_app = app.clone();
     let window = label.to_string();
     let download_app = app.clone();
@@ -170,6 +171,19 @@ fn exam_page(
     )
     .user_agent(&session::user_agent(&settings))
     .initialization_script_for_all_frames(session::js_api(&config_key))
+    .on_page_load(move |webview, load| {
+        let address = load.url().as_str();
+        if load.event() == PageLoadEvent::Started
+            && let Some(title) = session::window_title(&address_settings, Some(address), None)
+        {
+            let _ = webview.window().set_title(title);
+        }
+    })
+    .on_document_title_changed(move |webview, page_title| {
+        if let Some(title) = session::window_title(&title_settings, None, Some(&page_title)) {
+            let _ = webview.window().set_title(title);
+        }
+    })
     .on_navigation(move |url| {
         // SEB cancels the navigation, then asks only if quitURLConfirm is set (RequestResponsibility).
         let quit = session::is_quit_url(&settings, url.as_str());
