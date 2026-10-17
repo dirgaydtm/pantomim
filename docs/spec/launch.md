@@ -9,7 +9,7 @@ pub fn download_url(arg: &str) -> Option<String>;
 pub fn is_browser_resource(status: u16, content_type: Option<&str>) -> bool;
 pub fn is_configuration_download(url: &str, file_name: &str) -> bool;
 pub fn start_url(settings: &plist::Dictionary, link: &str) -> Option<String>;
-pub fn failure_message(error: Option<&configuration::Error>) -> (&'static str, &'static str);
+pub fn failure_message(error: Option<&configuration::Error>) -> &'static str;
 ```
 
 ## Flow A
@@ -35,7 +35,7 @@ In Flow A the link is the argument. After a reconfiguration it is the URL the `.
 
 ## `failure_message`
 
-A configuration that cannot be opened is shown in a MessageBox with an error icon, as in SEB's `ConfigurationOperation.ShowFailureMessage`. `failure_message` returns its (title, message) text keys; the message names the configuration as `%%URI%%` (the link, or `file://` + absolute path for a file):
+A configuration that cannot be opened is shown in a MessageBox with an error icon, as in SEB's `ConfigurationOperation.ShowFailureMessage`. `failure_message` returns its message text key (the title key is the same + `Title`); the message names the configuration as `%%URI%%` (the link, or `file://` + absolute path for a file):
 
 - `InvalidData` → `MessageBox_InvalidConfigurationData`.
 - `NotSupported` → `MessageBox_NotSupportedConfigurationResource`.

@@ -20,14 +20,15 @@ use crate::{Session, Start, configuration, launch, session};
 
 const TASKBAR_HEIGHT: i32 = 40;
 
-const CONFIRM_QUIT: &str =
-    "screen=message&title=MessageBox_QuitTitle&message=MessageBox_Quit&icon=question&buttons=yesno";
-const CONFIRM_QUIT_URL: &str = "screen=message&title=MessageBox_BrowserQuitUrlConfirmationTitle&message=MessageBox_BrowserQuitUrlConfirmation&icon=question&buttons=yesno";
-const QUIT_PASSWORD: &str = "screen=password&title=PasswordDialog_QuitPasswordRequiredTitle&message=PasswordDialog_QuitPasswordRequired";
-const INVALID_QUIT_PASSWORD: &str = "screen=message&title=MessageBox_InvalidQuitPasswordTitle&message=MessageBox_InvalidQuitPassword&icon=warning&buttons=ok";
-const SETTINGS_PASSWORD: &str = "screen=password&title=PasswordDialog_SettingsPasswordRequiredTitle&message=PasswordDialog_SettingsPasswordRequired";
-const NO_CONFIGURATION: &str =
-    "screen=message&title=NoConfigurationTitle&message=NoConfiguration&icon=information&buttons=ok";
+// Dialog pages (src/dialogs); `text` is a text key, whose title is the same key + "Title".
+const CONFIRM_QUIT: &str = "screen=message&text=MessageBox_Quit&icon=question&buttons=yesno";
+const CONFIRM_QUIT_URL: &str =
+    "screen=message&text=MessageBox_BrowserQuitUrlConfirmation&icon=question&buttons=yesno";
+const QUIT_PASSWORD: &str = "screen=password&text=PasswordDialog_QuitPasswordRequired";
+const INVALID_QUIT_PASSWORD: &str =
+    "screen=message&text=MessageBox_InvalidQuitPassword&icon=warning&buttons=ok";
+const SETTINGS_PASSWORD: &str = "screen=password&text=PasswordDialog_SettingsPasswordRequired";
+const NO_CONFIGURATION: &str = "screen=message&text=NoConfiguration&icon=information&buttons=ok";
 
 /// Opens what the configuration leads to, replacing `old` (a reconfigured exam window) if it opens.
 /// Without `old` this is startup, where a failure or a cancelled password ends pantomim like SEB.
@@ -39,14 +40,7 @@ pub fn start(app: &AppHandle, start: Start, old: Option<Window>) {
                     let _ = old.destroy();
                 }
             }
-            Err(e) => {
-                let failed = Start::Failed {
-                    error: None,
-                    uri: String::new(),
-                    detail: e.to_string(),
-                };
-                self::start(app, failed, old);
-            }
+            Err(e) => self::start(app, Start::failed(String::new(), e.to_string()), old),
         },
         // SEB ConfigurationBaseOperation asks at most 5 times; pantomim asks until right or cancelled.
         Start::Locked { data, link } => dialog::open(
@@ -63,21 +57,21 @@ pub fn start(app: &AppHandle, start: Start, old: Option<Window>) {
         ),
         Start::Failed { error, uri, detail } => {
             eprintln!("pantomim: {detail}");
-            let (title, message) = launch::failure_message(error.as_ref());
-            let mut page = tauri::Url::parse("app:").unwrap();
+            let text = launch::failure_message(error.as_ref());
+            let mut page = tauri::Url::parse("app:?screen=message&icon=error&buttons=ok").unwrap();
             page.query_pairs_mut()
-                .append_pair("screen", "message")
-                .append_pair("title", title)
-                .append_pair("message", message)
-                .append_pair("icon", "error")
-                .append_pair("buttons", "ok")
+                .append_pair("text", text)
                 .append_pair("uri", &uri);
-            let page = page.query().unwrap_or_default().to_string();
-            dialog::open(app, old.clone().as_ref(), &page, move |app, _| {
-                if old.is_none() {
-                    app.exit(1);
-                }
-            });
+            dialog::open(
+                app,
+                old.clone().as_ref(),
+                page.query().unwrap(),
+                move |app, _| {
+                    if old.is_none() {
+                        app.exit(1);
+                    }
+                },
+            );
         }
         Start::NoArgument => dialog::open(app, None, NO_CONFIGURATION, |app, _| app.exit(1)),
     }
@@ -90,9 +84,10 @@ pub struct QuitPasswords(Mutex<HashMap<String, String>>);
 /// The taskbar quit button (SEB `ShellResponsibility.TryInitiateShutdown`).
 #[tauri::command]
 pub fn quit(window: Window, passwords: State<QuitPasswords>) {
+    let app = window.app_handle().clone();
     match passwords.0.lock().unwrap().get(window.label()).cloned() {
         Some(hash) => dialog::open(
-            &window.app_handle().clone(),
+            &app,
             Some(&window.clone()),
             QUIT_PASSWORD,
             move |app, password| match password {
@@ -101,12 +96,7 @@ pub fn quit(window: Window, passwords: State<QuitPasswords>) {
                 None => {}
             },
         ),
-        None => dialog::open(
-            window.app_handle(),
-            Some(&window),
-            CONFIRM_QUIT,
-            exit_on_yes,
-        ),
+        None => dialog::open(&app, Some(&window), CONFIRM_QUIT, exit_on_yes),
     }
 }
 
@@ -243,11 +233,7 @@ fn reconfigure(app: &AppHandle, old_window: &str, path: PathBuf, link: &str) {
     let _ = std::fs::remove_file(&path);
     let started = match data {
         Ok(data) => crate::start_from(data, link.to_string(), None),
-        Err(e) => Start::Failed {
-            error: None,
-            uri: link.to_string(),
-            detail: format!("{link}: {e}"),
-        },
+        Err(e) => Start::failed(link.to_string(), format!("{link}: {e}")),
     };
     start(app, started, app.get_window(old_window));
 }

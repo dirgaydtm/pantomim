@@ -24,8 +24,8 @@ pub fn open(
     static DIALOGS: AtomicUsize = AtomicUsize::new(0);
     let parent_label = parent.map(|p| p.label().to_string());
     // Modal like SEB: Wayland does not block the parent, so a second quit click must not stack dialogs.
-    let open = app.state::<Dialogs>();
-    if open
+    let dialogs = app.state::<Dialogs>();
+    if dialogs
         .0
         .lock()
         .unwrap()
@@ -43,14 +43,10 @@ pub fn open(
         .minimizable(false)
         .maximizable(false)
         .visible(false);
-    if let Some(parent) = parent {
-        match parent.gtk_window() {
-            Ok(gtk_parent) => builder = builder.transient_for_raw(&gtk_parent),
-            Err(e) => return eprintln!("pantomim: dialog: {e}"),
-        }
+    if let Some(gtk_parent) = parent.and_then(|p| p.gtk_window().ok()) {
+        builder = builder.transient_for_raw(&gtk_parent);
     }
-    let built = builder.build();
-    let dialog = match built {
+    let dialog = match builder.build() {
         Ok(dialog) => dialog,
         Err(e) => return eprintln!("pantomim: dialog: {e}"),
     };
@@ -61,11 +57,8 @@ pub fn open(
         window.set_size_request(-1, -1);
         window.set_default_size(-1, -1);
     }
-    app.state::<Dialogs>()
-        .0
-        .lock()
-        .unwrap()
-        .insert(label.clone(), (parent_label, Box::new(answer)));
+    let pending = (parent_label, Box::new(answer) as Answer);
+    dialogs.0.lock().unwrap().insert(label.clone(), pending);
     let handle = app.clone();
     dialog.on_window_event(move |event| {
         if let WindowEvent::Destroyed = event {

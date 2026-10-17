@@ -116,31 +116,18 @@ fn start_url_appends_query_after_the_last_question_mark_of_the_link() {
 
 #[test]
 fn failure_message_follows_seb() {
-    // SEB ConfigurationOperation.ShowFailureMessage: (title, message) text keys per load status.
-    let cases = [
-        (
-            Error::InvalidData("x".into()),
-            (
-                "MessageBox_InvalidConfigurationDataTitle",
-                "MessageBox_InvalidConfigurationData",
-            ),
-        ),
-        (
-            Error::NotSupported("x".into()),
-            (
-                "MessageBox_NotSupportedConfigurationResourceTitle",
-                "MessageBox_NotSupportedConfigurationResource",
-            ),
-        ),
-    ];
-    for (error, keys) in cases {
-        assert_eq!(failure_message(Some(&error)), keys);
-    }
+    // SEB ConfigurationOperation.ShowFailureMessage: message text key per load status.
+    let message = |error: Error| failure_message(Some(&error));
+    assert_eq!(
+        message(Error::InvalidData("x".into())),
+        "MessageBox_InvalidConfigurationData"
+    );
+    assert_eq!(
+        message(Error::NotSupported("x".into())),
+        "MessageBox_NotSupportedConfigurationResource"
+    );
     assert_eq!(
         failure_message(None),
-        (
-            "MessageBox_UnexpectedConfigurationErrorTitle",
-            "MessageBox_UnexpectedConfigurationError"
-        )
+        "MessageBox_UnexpectedConfigurationError"
     );
 }

@@ -1,7 +1,7 @@
 // Windows/PasswordDialog.xaml with the FontAwesome 4.7 "Key" icon (FontAwesome.WPF), rotated 90°.
 import { useState } from "react";
 import { text } from "../text";
-import { answer, textParam, useDialogWindow } from "./dialog";
+import { answer, textOf, useDialogWindow } from "./dialog";
 import "./dialogs.css";
 
 export default function PasswordDialog() {
@@ -20,7 +20,7 @@ export default function PasswordDialog() {
 					/>
 				</svg>
 				<div className="form">
-					<p>{textParam("message")}</p>
+					<p>{textOf()}</p>
 					<input
 						type="password"
 						// biome-ignore lint/a11y/noAutofocus: FocusManager.FocusedElement="{Binding ElementName=Password}".

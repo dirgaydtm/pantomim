@@ -28,6 +28,16 @@ enum Start {
     NoArgument,
 }
 
+impl Start {
+    fn failed(uri: String, detail: String) -> Self {
+        Start::Failed {
+            error: None,
+            uri,
+            detail,
+        }
+    }
+}
+
 pub fn run() {
     let start = open(std::env::args().nth(1));
 
@@ -51,11 +61,6 @@ fn open(arg: Option<String>) -> Start {
     let Some(arg) = arg else {
         return Start::NoArgument;
     };
-    let failed = |uri: String, detail: String| Start::Failed {
-        error: None,
-        uri,
-        detail,
-    };
     let (data, link) = match launch::download_url(&arg) {
         Some(url) => match fetch(&url) {
             Ok(Some(data)) => (data, arg),
@@ -66,7 +71,7 @@ fn open(arg: Option<String>) -> Start {
                     from_browser: true,
                 });
             }
-            Err(detail) => return failed(arg, detail),
+            Err(detail) => return Start::failed(arg, detail),
         },
         None => {
             // SEB names a file argument by its file URI.
@@ -74,7 +79,7 @@ fn open(arg: Option<String>) -> Start {
             let uri = format!("file://{}", path.display());
             match std::fs::read(&path) {
                 Ok(data) => (data, uri),
-                Err(e) => return failed(uri, format!("{arg}: {e}")),
+                Err(e) => return Start::failed(uri, format!("{arg}: {e}")),
             }
         }
     };
@@ -111,11 +116,10 @@ fn start_from(data: Vec<u8>, link: String, password: Option<&str>) -> Start {
                 start_url,
                 from_browser: false,
             }),
-            None => Start::Failed {
-                error: None,
-                detail: format!("{link}: configuration has no startURL"),
-                uri: link,
-            },
+            None => Start::failed(
+                link.clone(),
+                format!("{link}: configuration has no startURL"),
+            ),
         },
         Err(configuration::Error::PasswordNeeded | configuration::Error::WrongPassword) => {
             Start::Locked { data, link }

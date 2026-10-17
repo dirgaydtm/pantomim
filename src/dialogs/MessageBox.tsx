@@ -1,7 +1,6 @@
 // SEB MessageBoxFactory shows the native Windows message box; this copies the Windows 10 one (no XAML exists).
-import { useEffect } from "react";
 import { text } from "../text";
-import { answer, param, textParam, useDialogWindow } from "./dialog";
+import { answer, param, textOf, useDialogWindow } from "./dialog";
 import "./dialogs.css";
 
 const icons = {
@@ -69,18 +68,16 @@ export default function MessageBox() {
 		if (kind === "yesno")
 			await window.onCloseRequested((e) => e.preventDefault());
 	});
-	useEffect(() => {
-		if (kind !== "ok") return;
-		const onKey = (e: KeyboardEvent) => e.key === "Escape" && answer("ok");
-		addEventListener("keydown", onKey);
-		return () => removeEventListener("keydown", onKey);
-	}, [kind]);
-
 	return (
-		<div className="message-box" ref={ref}>
+		<div
+			className="message-box"
+			role="alertdialog"
+			ref={ref}
+			onKeyDown={(e) => kind === "ok" && e.key === "Escape" && answer("ok")}
+		>
 			<div className="content">
 				{icons[param("icon") as keyof typeof icons]}
-				<p>{textParam("message")}</p>
+				<p>{textOf()}</p>
 			</div>
 			<div className="buttons">
 				{buttons[kind].map(([value, label], i) => (

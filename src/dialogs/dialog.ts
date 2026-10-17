@@ -6,8 +6,12 @@ import { type TextKey, text } from "../text";
 const params = new URLSearchParams(location.hash.slice(1));
 export const param = (name: string) => params.get(name) ?? "";
 // SEB texts name the configuration as %%URI%%.
-export const textParam = (name: string) =>
-	(text[param(name) as TextKey] ?? "").replace("%%URI%%", param("uri"));
+/** The page's text (`text` param) or its title (`text` + "Title"), from src/text.ts. */
+export const textOf = (suffix = "") =>
+	(text[(param("text") + suffix) as TextKey] ?? "").replace(
+		"%%URI%%",
+		param("uri"),
+	);
 
 /** Sends the dialog's result to Rust (shell/dialog.rs), which closes it. `null` means cancelled. */
 export const answer = (value: string | null) => invoke("answer", { value });
@@ -23,7 +27,7 @@ export function useDialogWindow<T extends HTMLElement>(
 		const element = ref.current;
 		if (!element) return;
 		(async () => {
-			await window.setTitle(textParam("title"));
+			await window.setTitle(textOf("Title"));
 			await setup?.(window);
 			await invoke("fit", {
 				width: element.offsetWidth,
