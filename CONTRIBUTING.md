@@ -11,6 +11,8 @@ bun install
 bun run tauri dev -- -- /path/to/config.seb
 ```
 
+`bun install` also installs the Git hooks from `lefthook.yml`. Skip them for one commit with `git commit --no-verify`.
+
 ## Building packages
 
 ```sh
@@ -33,12 +35,7 @@ It creates the course, the quiz and four questions, then prints the command that
 
 ## Before you open a pull request
 
-```sh
-cd src-tauri && cargo fmt && cargo clippy --all-targets && cargo test
-cd .. && bunx biome check src && bunx tsc --noEmit
-```
-
-If you changed something the user sees, run it and look at it. A green test run doesn't show a dialog at the wrong size.
+The hooks check formatting, types, clippy and the tests on commit and push. They can't see the UI, so if you changed something the user sees, run it and look at it: a green test run doesn't show a dialog at the wrong size.
 
 ## Changing behavior
 
@@ -52,7 +49,7 @@ UI texts come word for word from SEB's `id.xml` and `en.xml`.
 
 `cargo fmt` formats the Rust code and Biome formats `src/`. Files carry no license header; the license lives in `LICENSE` and `NOTICE`. Write a comment only when the code can't explain itself, usually to say why or to name the SEB code it follows.
 
-Keep commits small, with a short title in the `feat:`, `fix:`, `refactor:` or `chore:` style and a few bullet points underneath.
+Keep commits small. Titles follow [Conventional Commits](https://www.conventionalcommits.org), such as `feat:` or `fix:`, and the commit-msg hook checks them. A few bullet points underneath say what changed.
 
 ## License
 

@@ -1,0 +1,32 @@
+commit-msg:
+  commands:
+    commitlint:
+      run: bunx commitlint --edit {1}
+
+pre-commit:
+  parallel: true
+  commands:
+    # Only src/: Biome would reformat tauri.conf.json and the capabilities with tabs.
+    biome:
+      glob: "src/**/*.{ts,tsx,css}"
+      run: bunx biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+    typecheck:
+      glob: "src/**/*.{ts,tsx}"
+      run: bunx tsc --noEmit
+    # Staged files only: `cargo fmt` would also rewrite files you haven't staged.
+    rustfmt:
+      glob: "src-tauri/**/*.rs"
+      run: rustfmt --edition 2024 {staged_files}
+      stage_fixed: true
+    no-debug-code:
+      glob: "*.{ts,tsx,rs}"
+      run: "! grep -n -e 'console\\.log(' -e '\\bdebugger\\b' -e 'dbg!(' {staged_files}"
+
+pre-push:
+  parallel: true
+  commands:
+    clippy:
+      run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings
+    test:
+      run: cargo test --manifest-path src-tauri/Cargo.toml --locked
