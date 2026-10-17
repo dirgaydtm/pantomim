@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    # The oldest supported Ubuntu keeps the AppImage working on older glibc.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      # Bundle names and the AUR/apt/dnf jobs use the app version, so it must match the tag
+      # (without a pre-release suffix such as -rc1).
+      - name: Tag matches the app version
+        run: |
+          app=$(jq -r .version src-tauri/tauri.conf.json)
+          crate=$(grep -m1 '^version' src-tauri/Cargo.toml | cut -d'"' -f2)
+          tag=${GITHUB_REF_NAME#v}
+          if [ "${tag%%-*}" != "$app" ] || [ "$crate" != "$app" ]; then
+            echo "Tag $GITHUB_REF_NAME, tauri.conf.json $app and Cargo.toml $crate must agree"
+            exit 1
+          fi
+
+      - name: System libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf
+
+      # Third-party actions are pinned to a commit; Dependabot proposes updates.
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - run: bun install --frozen-lockfile
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - run: bun tauri build
+
+      # The .rpm is built on Ubuntu, so check that Fedora can resolve its dependencies.
+      - name: Install the .rpm on Fedora
+        run: |
+          docker run --rm -v "$PWD/src-tauri/target/release/bundle/rpm:/rpm" fedora:latest \
+            sh -c 'dnf install -y /rpm/*.rpm && rpm -q --requires pantomim | grep -i webkit'
+
+      # Try the draft's packages, then publish it by hand; distribute.yml does the rest.
+      # A tag with a suffix (v0.2.0-rc1) becomes a pre-release, which distribute.yml skips.
+      - name: Draft the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bundle=src-tauri/target/release/bundle
+          prerelease=$(case "$GITHUB_REF_NAME" in *-*) echo --prerelease;; esac)
+          gh release create "$GITHUB_REF_NAME" --draft $prerelease --generate-notes \
+            --title "pantomim $GITHUB_REF_NAME" \
+            "$bundle"/deb/*.deb "$bundle"/rpm/*.rpm "$bundle"/appimage/*.AppImage

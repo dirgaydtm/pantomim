@@ -1,0 +1,17 @@
+pkgbase = pantomim-bin
+	pkgdesc = SEB alternative for Linux: opens Moodle quizzes that require Safe Exam Browser
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/dirgaydtm/pantomim
+	arch = x86_64
+	license = MPL-2.0
+	depends = webkit2gtk-4.1
+	depends = gtk3
+	depends = libsoup3
+	depends = hicolor-icon-theme
+	provides = pantomim
+	conflicts = pantomim
+	source = https://github.com/dirgaydtm/pantomim/releases/download/v0.1.0/pantomim_0.1.0_amd64.deb
+	sha256sums = SKIP
+
+pkgname = pantomim-bin

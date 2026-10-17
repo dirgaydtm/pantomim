@@ -1,0 +1,17 @@
+# Maintainer: Dirga Yuditama <dirgayuditama6 at gmail dot com>
+pkgname=pantomim-bin
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="SEB alternative for Linux: opens Moodle quizzes that require Safe Exam Browser"
+arch=('x86_64')
+url="https://github.com/dirgaydtm/pantomim"
+license=('MPL-2.0')
+depends=('webkit2gtk-4.1' 'gtk3' 'libsoup3' 'hicolor-icon-theme')
+provides=('pantomim')
+conflicts=('pantomim')
+source=("$url/releases/download/v$pkgver/pantomim_${pkgver}_amd64.deb")
+sha256sums=('SKIP')
+
+package() {
+  bsdtar -xf data.tar.gz -C "$pkgdir"
+}

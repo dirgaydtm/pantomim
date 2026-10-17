@@ -1,0 +1,72 @@
+name: Distribute
+
+# When a release is published, update the AUR package and the apt/dnf repository on
+# GitHub Pages from its files. Pre-releases stay on GitHub only.
+# Secrets: AUR_SSH_PRIVATE_KEY (key added to the AUR account) and REPO_GPG_PRIVATE_KEY
+# (armored, no passphrase). Pages must be set to deploy from GitHub Actions.
+on:
+  release:
+    types: [published]
+
+jobs:
+  aur:
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Point the PKGBUILD at this release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="${TAG#v}"
+          gh release download "$TAG" --pattern "pantomim_${version}_amd64.deb" --dir /tmp
+          sum=$(sha256sum "/tmp/pantomim_${version}_amd64.deb" | cut -d' ' -f1)
+          sed -i -e "s/^pkgver=.*/pkgver=${version}/" -e "s/^pkgrel=.*/pkgrel=1/" \
+            -e "s/^sha256sums=.*/sha256sums=('${sum}')/" packaging/aur/PKGBUILD
+
+      - uses: KSXGitHub/github-actions-deploy-aur@084b0d9b15415bf9cdb65d44dad1efe37a354050 # v4.2.0
+        with:
+          pkgname: pantomim-bin
+          pkgbuild: packaging/aur/PKGBUILD
+          commit_username: Dirga Yuditama
+          commit_email: dirgayuditama6@gmail.com
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: Update to ${{ github.event.release.tag_name }}
+
+  repo:
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Tools and signing key
+        env:
+          REPO_GPG_PRIVATE_KEY: ${{ secrets.REPO_GPG_PRIVATE_KEY }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev apt-utils createrepo-c
+          echo "$REPO_GPG_PRIVATE_KEY" | gpg --batch --import
+
+      - name: Build the repositories
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ github.event.release.tag_name }}" --pattern '*.deb' --pattern '*.rpm' --dir /tmp/packages
+          sh packaging/repo/build.sh /tmp/packages site "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
