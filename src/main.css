@@ -1,0 +1,8 @@
+/* WPF defaults: Segoe UI 12px. */
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font: 12px "Segoe UI", "Noto Sans", "DejaVu Sans", sans-serif;
+  user-select: none;
+}
