@@ -1,4 +1,4 @@
-//! Dialog windows (src/dialogs), modal on the exam window like SEB's `ShowDialog`.
+//! Dialog windows (src/dialogs), modal on the exam window like SEB's `ShowDialog`, or on their own at startup.
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -8,20 +8,21 @@ use tauri::{
     AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Window, WindowEvent,
 };
 
-type Answer = Box<dyn FnOnce(&Window, Option<String>) + Send>;
+type Answer = Box<dyn FnOnce(&AppHandle, Option<String>) + Send>;
 
 /// Open dialogs by label: the window they belong to and what to do with the answer.
 #[derive(Default)]
-pub struct Dialogs(Mutex<HashMap<String, (String, Answer)>>);
+pub struct Dialogs(Mutex<HashMap<String, (Option<String>, Answer)>>);
 
 /// Shows `index.html#{page}` over `parent`. `answer` gets the dialog's value, or `None` if it was closed.
 pub fn open(
-    parent: &Window,
+    app: &AppHandle,
+    parent: Option<&Window>,
     page: &str,
-    answer: impl FnOnce(&Window, Option<String>) + Send + 'static,
+    answer: impl FnOnce(&AppHandle, Option<String>) + Send + 'static,
 ) {
     static DIALOGS: AtomicUsize = AtomicUsize::new(0);
-    let app = parent.app_handle();
+    let parent_label = parent.map(|p| p.label().to_string());
     // Modal like SEB: Wayland does not block the parent, so a second quit click must not stack dialogs.
     let open = app.state::<Dialogs>();
     if open
@@ -29,22 +30,26 @@ pub fn open(
         .lock()
         .unwrap()
         .values()
-        .any(|(p, _)| p == parent.label())
+        .any(|(p, _)| *p == parent_label)
     {
         return;
     }
     let label = format!("dialog-{}", DIALOGS.fetch_add(1, Ordering::Relaxed));
     let page = WebviewUrl::App(format!("index.html#{page}").into());
-    let built = parent.gtk_window().and_then(|gtk_parent| {
-        // Hidden until the page has set its title and size (src/dialogs/dialog.ts).
-        WebviewWindowBuilder::new(app, &label, page)
-            .transient_for_raw(&gtk_parent)
-            .resizable(false)
-            .minimizable(false)
-            .maximizable(false)
-            .visible(false)
-            .build()
-    });
+    // Hidden until the page has set its title and size (src/dialogs/dialog.ts).
+    let mut builder = WebviewWindowBuilder::new(app, &label, page)
+        .title("pantomim")
+        .resizable(false)
+        .minimizable(false)
+        .maximizable(false)
+        .visible(false);
+    if let Some(parent) = parent {
+        match parent.gtk_window() {
+            Ok(gtk_parent) => builder = builder.transient_for_raw(&gtk_parent),
+            Err(e) => return eprintln!("pantomim: dialog: {e}"),
+        }
+    }
+    let built = builder.build();
     let dialog = match built {
         Ok(dialog) => dialog,
         Err(e) => return eprintln!("pantomim: dialog: {e}"),
@@ -60,7 +65,7 @@ pub fn open(
         .0
         .lock()
         .unwrap()
-        .insert(label.clone(), (parent.label().into(), Box::new(answer)));
+        .insert(label.clone(), (parent_label, Box::new(answer)));
     let handle = app.clone();
     dialog.on_window_event(move |event| {
         if let WindowEvent::Destroyed = event {
@@ -86,9 +91,7 @@ pub fn answer(dialog: WebviewWindow, value: Option<String>) {
 
 fn finish(app: &AppHandle, label: &str, value: Option<String>) {
     let pending = app.state::<Dialogs>().0.lock().unwrap().remove(label);
-    if let Some((parent, answer)) = pending
-        && let Some(parent) = app.get_window(&parent)
-    {
-        answer(&parent, value);
+    if let Some((_, answer)) = pending {
+        answer(app, value);
     }
 }

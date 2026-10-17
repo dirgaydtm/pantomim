@@ -11,15 +11,26 @@ struct Session {
     from_browser: bool,
 }
 
+/// Where the configuration argument leads.
+enum Start {
+    Exam(Session),
+    /// An encrypted `.seb`: ask for its password, then `start_from` again.
+    Locked {
+        data: Vec<u8>,
+        link: String,
+    },
+    /// `error` is `None` when it is not the configuration's fault (download, file).
+    Failed {
+        error: Option<configuration::Error>,
+        uri: String,
+        detail: String,
+    },
+    NoArgument,
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let session = match open(std::env::args().nth(1)) {
-        Ok(session) => session,
-        Err(message) => {
-            eprintln!("pantomim: {message}");
-            std::process::exit(1);
-        }
-    };
+    let start = open(std::env::args().nth(1));
 
     tauri::Builder::default()
         .manage(shell::dialog::Dialogs::default())
@@ -29,27 +40,46 @@ pub fn run() {
             shell::dialog::answer,
             shell::dialog::fit
         ])
-        .setup(move |app| shell::open_window(app.handle(), session))
+        .setup(move |app| {
+            shell::start(app.handle(), start, None);
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
-fn open(arg: Option<String>) -> Result<Session, String> {
-    let arg = arg.ok_or("open pantomim from Moodle or with a .seb file")?;
-    let data = match launch::download_url(&arg) {
-        Some(url) => match fetch(&url)? {
-            Some(data) => data,
-            None => {
-                return Ok(Session {
+fn open(arg: Option<String>) -> Start {
+    let Some(arg) = arg else {
+        return Start::NoArgument;
+    };
+    let failed = |uri: String, detail: String| Start::Failed {
+        error: None,
+        uri,
+        detail,
+    };
+    let (data, link) = match launch::download_url(&arg) {
+        Some(url) => match fetch(&url) {
+            Ok(Some(data)) => (data, arg),
+            Ok(None) => {
+                return Start::Exam(Session {
                     settings: Dictionary::new(),
                     start_url: url,
                     from_browser: true,
                 });
             }
+            Err(detail) => return failed(arg, detail),
         },
-        None => std::fs::read(&arg).map_err(|e| format!("{arg}: {e}"))?,
+        None => {
+            // SEB names a file argument by its file URI.
+            let path = std::path::absolute(&arg).unwrap_or_else(|_| arg.clone().into());
+            let uri = format!("file://{}", path.display());
+            match std::fs::read(&path) {
+                Ok(data) => (data, uri),
+                Err(e) => return failed(uri, format!("{arg}: {e}")),
+            }
+        }
     };
-    session_from(&data, &arg)
+    start_from(data, link, None)
 }
 
 /// `None` means the link is a web page (login, HTML) to open in the browser instead.
@@ -74,12 +104,27 @@ fn fetch(url: &str) -> Result<Option<Vec<u8>>, String> {
     data.map(Some).map_err(|e| format!("{url}: {e}"))
 }
 
-fn session_from(data: &[u8], link: &str) -> Result<Session, String> {
-    let settings = configuration::load(data, None).map_err(|e| e.to_string())?;
-    let start_url = launch::start_url(&settings, link).ok_or("configuration has no startURL")?;
-    Ok(Session {
-        settings,
-        start_url,
-        from_browser: false,
-    })
+fn start_from(data: Vec<u8>, link: String, password: Option<&str>) -> Start {
+    match configuration::load(&data, password) {
+        Ok(settings) => match launch::start_url(&settings, &link) {
+            Some(start_url) => Start::Exam(Session {
+                settings,
+                start_url,
+                from_browser: false,
+            }),
+            None => Start::Failed {
+                error: None,
+                detail: format!("{link}: configuration has no startURL"),
+                uri: link,
+            },
+        },
+        Err(configuration::Error::PasswordNeeded | configuration::Error::WrongPassword) => {
+            Start::Locked { data, link }
+        }
+        Err(error) => Start::Failed {
+            detail: format!("{link}: {error}"),
+            error: Some(error),
+            uri: link,
+        },
+    }
 }

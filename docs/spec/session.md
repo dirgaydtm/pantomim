@@ -8,6 +8,8 @@ Everything the browser shows the exam server, worked out from the settings. It c
 pub fn user_agent(settings: &plist::Dictionary) -> String;
 pub fn is_quit_url(settings: &plist::Dictionary, url: &str) -> bool;
 pub fn js_api(config_key: &str) -> String;
+pub fn is_quit_password(hash: &str, password: &str) -> bool;
+pub fn fullscreen(settings: &plist::Dictionary) -> bool;
 ```
 
 ## `user_agent`
@@ -39,6 +41,14 @@ SafeExamBrowser = {
 - Keys must never start as `":"`. Moodle reads that as "not ready" and calls `updateKeys(safeExamBrowserKeysUpdated)`, which runs without the quiz `cmid`, so validation never finishes and the page stays on "Checking access to Safe Exam Browser...".
 - `browserExamKey` is empty because pantomim cannot produce a Browser Exam Key.
 
+## `is_quit_password`
+
+SEB `ClientResponsibility.IsValidQuitPassword`: the hex SHA-256 of the UTF-8 password equals `hashedQuitPassword`, ignoring case.
+
+## `fullscreen`
+
+SEB `BrowserDataMapper.MapMainWindowMode`: the exam window is fullscreen only when `browserViewMode` is the integer `1`.
+
 ## Test vectors
 
 1. `user_agent`:
@@ -50,3 +60,5 @@ SafeExamBrowser = {
    - does not match `https://a.b/quit/x`, `https://a.b/quit?x`, `https://a.b/quit//`.
    - with no `quitURL`, or `quitURL` = `" "`, nothing matches.
 3. `js_api` with Config Key `866101fb…7d31` in a frame at `https://brone.ub.ac.id/mod/quiz/view.php?id=68624#x`: `configKey` is `415a4047804b9b5162b8d1190176319c210927ca5423aded7c4b91b5465fef71`, the value Moodle accepted.
+4. `is_quit_password` with hash `ba7816bf…15ad` (SHA-256 of `abc`, FIPS 180-2): `abc` matches, also against the upper-case hash; `ABC` and `` do not. The Moodle Sandbox writes this same hash for quit password `abc`.
+5. `fullscreen`: `browserViewMode` = integer `1` → true; `0`, `2`, string `"1"`, `true`, or missing → false.

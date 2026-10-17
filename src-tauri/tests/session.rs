@@ -1,4 +1,4 @@
-use pantomim_lib::session::{is_quit_password, is_quit_url, js_api, user_agent};
+use pantomim_lib::session::{fullscreen, is_quit_password, is_quit_url, js_api, user_agent};
 use plist::{Dictionary, Value};
 
 fn settings(entries: &[(&str, Value)]) -> Dictionary {
@@ -71,4 +71,19 @@ fn quit_password_is_sha256_hex_ignoring_case() {
     assert!(is_quit_password(&hash.to_uppercase(), "abc"));
     assert!(!is_quit_password(hash, "ABC"));
     assert!(!is_quit_password(hash, ""));
+}
+
+#[test]
+fn fullscreen_only_for_integer_view_mode_1() {
+    // SEB BrowserDataMapper.MapMainWindowMode: FullScreenMode = value is int && value == 1.
+    assert!(fullscreen(&settings(&[("browserViewMode", 1.into())])));
+    for value in [
+        Value::from(0),
+        Value::from(2),
+        Value::from("1"),
+        Value::from(true),
+    ] {
+        assert!(!fullscreen(&settings(&[("browserViewMode", value)])));
+    }
+    assert!(!fullscreen(&settings(&[])));
 }

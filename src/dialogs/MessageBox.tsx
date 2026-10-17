@@ -32,6 +32,26 @@ const icons = {
 			<circle cx="16" cy="25.5" r="1.8" />
 		</svg>
 	),
+	// Windows 10 error icon: red disc with a white cross.
+	error: (
+		<svg viewBox="0 0 32 32" aria-hidden="true">
+			<circle cx="16" cy="16" r="15" fill="#e81123" />
+			<path
+				d="M11 11l10 10M21 11 11 21"
+				stroke="#fff"
+				strokeWidth="2.6"
+				strokeLinecap="round"
+			/>
+		</svg>
+	),
+	// Windows 10 information icon: blue disc with a white "i".
+	information: (
+		<svg viewBox="0 0 32 32" aria-hidden="true">
+			<circle cx="16" cy="16" r="15" fill="#1c71d8" />
+			<circle cx="16" cy="9.5" r="2" fill="#fff" />
+			<path d="M16 14v10" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+		</svg>
+	),
 };
 
 const buttons = {

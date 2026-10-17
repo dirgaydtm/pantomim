@@ -9,6 +9,7 @@ pub fn download_url(arg: &str) -> Option<String>;
 pub fn is_browser_resource(status: u16, content_type: Option<&str>) -> bool;
 pub fn is_configuration_download(url: &str, file_name: &str) -> bool;
 pub fn start_url(settings: &plist::Dictionary, link: &str) -> Option<String>;
+pub fn failure_message(error: Option<&configuration::Error>) -> (&'static str, &'static str);
 ```
 
 ## Flow A
@@ -32,10 +33,22 @@ pantomim refuses every other download. It also refuses a `.seb` download in a se
 
 In Flow A the link is the argument. After a reconfiguration it is the URL the `.seb` was downloaded from.
 
+## `failure_message`
+
+A configuration that cannot be opened is shown in a MessageBox with an error icon, as in SEB's `ConfigurationOperation.ShowFailureMessage`. `failure_message` returns its (title, message) text keys; the message names the configuration as `%%URI%%` (the link, or `file://` + absolute path for a file):
+
+- `InvalidData` → `MessageBox_InvalidConfigurationData`.
+- `NotSupported` → `MessageBox_NotSupportedConfigurationResource`.
+- Anything else, including errors outside the configuration (`None`: download, missing file, no `startURL`) → `MessageBox_UnexpectedConfigurationError`.
+
+A password-protected `.seb` asks for the exam password until it is right or cancelled. SEB stops after 5 attempts; pantomim does not (the user's choice), so SEB's `MessageBox_InvalidPasswordError` is never shown. Cancelling at startup ends pantomim.
+
 ## Test vectors
 
 1. `download_url`: `sebs://h.id/x/config.php?cmid=1` → `https://h.id/x/config.php?cmid=1`; `seb://h.id/x.seb` → `http://h.id/x.seb`; `SEBS://h.id/x.seb` → `https://h.id/x.seb`; `https://h.id/x.seb` unchanged; `/home/a/config.seb` and `file:///home/a/config.seb` → `None`.
 2. `is_browser_resource`: true for `401` with no type, `200 text/html; charset=utf-8`, `404 text/html`. False for `200 application/seb`, `200 application/octet-stream`, `200` with no type.
 3. `is_configuration_download`: true for (`…/config.php?cmid=1`, `config.seb`) and (`…/Exam.SEB?a=1`, `download`). False for (`…/x.pdf`, `x.pdf`), (`…/seb`, `seb`), (`…/a.seb/b`, `b`), (`…/b?f=a.seb`, `b`).
 4. `start_url` with `startURL` `https://q.id/view.php` or `https://q.id/view.php?id=5`: the three rules above, plus no change when the flag is `false`, when the link has one `?`, or when the link is a file path. Without `startURL`: `None`.
-5. End to end on brone: `sebs://brone.ub.ac.id/mod/quiz/accessrule/seb/config.php?cmid=68624` opens the SSO login. After login, the `.seb` download replaces the window with the quiz page, which passes Moodle's SEB check.
+5. `failure_message`: `InvalidData` and `NotSupported` give their own keys above; `None` gives the unexpected-error keys.
+6. End to end on brone: `sebs://brone.ub.ac.id/mod/quiz/accessrule/seb/config.php?cmid=68624` opens the SSO login. After login, the `.seb` download replaces the window with the quiz page, which passes Moodle's SEB check.
+7. End to end on the Moodle Sandbox (2026-10-15): `xdg-open "sebs://sandbox.moodledemo.net/mod/quiz/accessrule/seb/config.php?cmid=…"` starts the registered handler; the download is HTML, the link opens in the browser, the `.seb` arrives as a download and the quiz shows "Attempt quiz".

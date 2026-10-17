@@ -16,7 +16,7 @@ use tauri::{
     Window,
 };
 
-use crate::{Session, configuration, launch, session};
+use crate::{Session, Start, configuration, launch, session};
 
 const TASKBAR_HEIGHT: i32 = 40;
 
@@ -25,6 +25,63 @@ const CONFIRM_QUIT: &str =
 const CONFIRM_QUIT_URL: &str = "screen=message&title=MessageBox_BrowserQuitUrlConfirmationTitle&message=MessageBox_BrowserQuitUrlConfirmation&icon=question&buttons=yesno";
 const QUIT_PASSWORD: &str = "screen=password&title=PasswordDialog_QuitPasswordRequiredTitle&message=PasswordDialog_QuitPasswordRequired";
 const INVALID_QUIT_PASSWORD: &str = "screen=message&title=MessageBox_InvalidQuitPasswordTitle&message=MessageBox_InvalidQuitPassword&icon=warning&buttons=ok";
+const SETTINGS_PASSWORD: &str = "screen=password&title=PasswordDialog_SettingsPasswordRequiredTitle&message=PasswordDialog_SettingsPasswordRequired";
+const NO_CONFIGURATION: &str =
+    "screen=message&title=NoConfigurationTitle&message=NoConfiguration&icon=information&buttons=ok";
+
+/// Opens what the configuration leads to, replacing `old` (a reconfigured exam window) if it opens.
+/// Without `old` this is startup, where a failure or a cancelled password ends pantomim like SEB.
+pub fn start(app: &AppHandle, start: Start, old: Option<Window>) {
+    match start {
+        Start::Exam(session) => match open_window(app, session) {
+            Ok(()) => {
+                if let Some(old) = old {
+                    let _ = old.destroy();
+                }
+            }
+            Err(e) => {
+                let failed = Start::Failed {
+                    error: None,
+                    uri: String::new(),
+                    detail: e.to_string(),
+                };
+                self::start(app, failed, old);
+            }
+        },
+        // SEB ConfigurationBaseOperation asks at most 5 times; pantomim asks until right or cancelled.
+        Start::Locked { data, link } => dialog::open(
+            app,
+            old.clone().as_ref(),
+            SETTINGS_PASSWORD,
+            move |app, password| match password {
+                Some(password) => {
+                    self::start(app, crate::start_from(data, link, Some(&password)), old)
+                }
+                None if old.is_none() => app.exit(0),
+                None => {}
+            },
+        ),
+        Start::Failed { error, uri, detail } => {
+            eprintln!("pantomim: {detail}");
+            let (title, message) = launch::failure_message(error.as_ref());
+            let mut page = tauri::Url::parse("app:").unwrap();
+            page.query_pairs_mut()
+                .append_pair("screen", "message")
+                .append_pair("title", title)
+                .append_pair("message", message)
+                .append_pair("icon", "error")
+                .append_pair("buttons", "ok")
+                .append_pair("uri", &uri);
+            let page = page.query().unwrap_or_default().to_string();
+            dialog::open(app, old.clone().as_ref(), &page, move |app, _| {
+                if old.is_none() {
+                    app.exit(1);
+                }
+            });
+        }
+        Start::NoArgument => dialog::open(app, None, NO_CONFIGURATION, |app, _| app.exit(1)),
+    }
+}
 
 /// `hashedQuitPassword` of each exam window that has one.
 #[derive(Default)]
@@ -35,21 +92,27 @@ pub struct QuitPasswords(Mutex<HashMap<String, String>>);
 pub fn quit(window: Window, passwords: State<QuitPasswords>) {
     match passwords.0.lock().unwrap().get(window.label()).cloned() {
         Some(hash) => dialog::open(
-            &window,
+            &window.app_handle().clone(),
+            Some(&window.clone()),
             QUIT_PASSWORD,
-            move |window, password| match password {
-                Some(p) if session::is_quit_password(&hash, &p) => window.app_handle().exit(0),
-                Some(_) => dialog::open(window, INVALID_QUIT_PASSWORD, |_, _| {}),
+            move |app, password| match password {
+                Some(p) if session::is_quit_password(&hash, &p) => app.exit(0),
+                Some(_) => dialog::open(app, Some(&window), INVALID_QUIT_PASSWORD, |_, _| {}),
                 None => {}
             },
         ),
-        None => dialog::open(&window, CONFIRM_QUIT, exit_on_yes),
+        None => dialog::open(
+            window.app_handle(),
+            Some(&window),
+            CONFIRM_QUIT,
+            exit_on_yes,
+        ),
     }
 }
 
-fn exit_on_yes(window: &Window, answer: Option<String>) {
+fn exit_on_yes(app: &AppHandle, answer: Option<String>) {
     if answer.as_deref() == Some("yes") {
-        window.app_handle().exit(0);
+        app.exit(0);
     }
 }
 
@@ -82,6 +145,7 @@ pub fn open_window(app: &AppHandle, session: Session) -> Result<(), Box<dyn Erro
     let window = WindowBuilder::new(app, &label)
         .title("pantomim")
         .inner_size(1100.0, 800.0)
+        .fullscreen(session::fullscreen(&session.settings))
         .build()?;
     // Linux lays child webviews out itself (see pin_height), so these bounds are placeholders.
     let (origin, size) = (LogicalPosition::new(0, 0), LogicalSize::new(1, 1));
@@ -125,7 +189,7 @@ fn exam_page(
             // Deferred so the dialog is not opened inside the webview's navigation callback.
             let _ = quit_app.run_on_main_thread(move || match app.get_window(&window) {
                 Some(window) if confirm == Some(true) => {
-                    dialog::open(&window, CONFIRM_QUIT_URL, exit_on_yes)
+                    dialog::open(&app, Some(&window), CONFIRM_QUIT_URL, exit_on_yes)
                 }
                 _ => app.exit(0),
             });
@@ -177,16 +241,13 @@ fn pin_height(webview: &Webview, height: i32) -> tauri::Result<()> {
 fn reconfigure(app: &AppHandle, old_window: &str, path: PathBuf, link: &str) {
     let data = std::fs::read(&path);
     let _ = std::fs::remove_file(&path);
-    let opened = data
-        .map_err(|e| e.to_string())
-        .and_then(|data| crate::session_from(&data, link))
-        .and_then(|session| open_window(app, session).map_err(|e| e.to_string()));
-    match opened {
-        Ok(()) => {
-            if let Some(window) = app.get_window(old_window) {
-                let _ = window.destroy();
-            }
-        }
-        Err(message) => eprintln!("pantomim: {message}"),
-    }
+    let started = match data {
+        Ok(data) => crate::start_from(data, link.to_string(), None),
+        Err(e) => Start::Failed {
+            error: None,
+            uri: link.to_string(),
+            detail: format!("{link}: {e}"),
+        },
+    };
+    start(app, started, app.get_window(old_window));
 }

@@ -1,6 +1,21 @@
 // Texts from SafeExamBrowser.I18n/Data/{id,en}.xml ("SEB" becomes "pantomim"), chosen like SEB by the system language.
 const texts = {
 	id: {
+		MessageBox_InvalidConfigurationData:
+			'Sumber konfigurasi "%%URI%%" berisi data yang tidak valid!',
+		MessageBox_InvalidConfigurationDataTitle: "Kesalahan Konfigurasi",
+		MessageBox_NotSupportedConfigurationResource:
+			'Sumber konfigurasi "%%URI%%" tidak didukung!',
+		MessageBox_NotSupportedConfigurationResourceTitle: "Kesalahan Konfigurasi",
+		MessageBox_UnexpectedConfigurationError:
+			'Terjadi kesalahan yang tidak diharapkan saat mencoba memuat sumber konfigurasi "%%URI%%"! Silakan baca file log untuk informasi lebih lanjut.',
+		MessageBox_UnexpectedConfigurationErrorTitle: "Kesalahan Konfigurasi",
+		PasswordDialog_SettingsPasswordRequired: "Masukkan kata sandi ujian:",
+		PasswordDialog_SettingsPasswordRequiredTitle: "Kata Sandi Diperlukan",
+		// pantomim's own: SEB without an argument starts with its default configuration instead.
+		NoConfiguration:
+			'Buka pantomim lewat tombol "Launch Safe Exam Browser" di Moodle atau dengan membuka file .seb.',
+		NoConfigurationTitle: "pantomim",
 		MessageBox_BrowserQuitUrlConfirmation:
 			"Aplikasi peramban telah mendeteksi URL keluar! Apakah Anda ingin menghentikan pantomim sekarang?",
 		MessageBox_BrowserQuitUrlConfirmationTitle: "URL Keluar Terdeteksi",
@@ -21,6 +36,20 @@ const texts = {
 		No: "Tidak",
 	},
 	en: {
+		MessageBox_InvalidConfigurationData:
+			'The configuration resource "%%URI%%" contains invalid data!',
+		MessageBox_InvalidConfigurationDataTitle: "Configuration Error",
+		MessageBox_NotSupportedConfigurationResource:
+			'The configuration resource "%%URI%%" is not supported!',
+		MessageBox_NotSupportedConfigurationResourceTitle: "Configuration Error",
+		MessageBox_UnexpectedConfigurationError:
+			'An unexpected error occurred while trying to load configuration resource "%%URI%%"! Please consult the log files for more information.',
+		MessageBox_UnexpectedConfigurationErrorTitle: "Configuration Error",
+		PasswordDialog_SettingsPasswordRequired: "Please enter the exam password:",
+		PasswordDialog_SettingsPasswordRequiredTitle: "Password Required",
+		NoConfiguration:
+			'Open pantomim with the "Launch Safe Exam Browser" button in Moodle or by opening a .seb file.',
+		NoConfigurationTitle: "pantomim",
 		MessageBox_BrowserQuitUrlConfirmation:
 			"The browser application has detected a quit URL! Would you like to terminate pantomim now?",
 		MessageBox_BrowserQuitUrlConfirmationTitle: "Quit URL Detected",

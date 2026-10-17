@@ -1,5 +1,6 @@
+use pantomim_lib::configuration::Error;
 use pantomim_lib::launch::{
-    download_url, is_browser_resource, is_configuration_download, start_url,
+    download_url, failure_message, is_browser_resource, is_configuration_download, start_url,
 };
 use plist::{Dictionary, Value};
 
@@ -111,4 +112,35 @@ fn start_url_appends_query_after_the_last_question_mark_of_the_link() {
         );
     }
     assert_eq!(start_url(&Dictionary::new(), "/a.seb"), None);
+}
+
+#[test]
+fn failure_message_follows_seb() {
+    // SEB ConfigurationOperation.ShowFailureMessage: (title, message) text keys per load status.
+    let cases = [
+        (
+            Error::InvalidData("x".into()),
+            (
+                "MessageBox_InvalidConfigurationDataTitle",
+                "MessageBox_InvalidConfigurationData",
+            ),
+        ),
+        (
+            Error::NotSupported("x".into()),
+            (
+                "MessageBox_NotSupportedConfigurationResourceTitle",
+                "MessageBox_NotSupportedConfigurationResource",
+            ),
+        ),
+    ];
+    for (error, keys) in cases {
+        assert_eq!(failure_message(Some(&error)), keys);
+    }
+    assert_eq!(
+        failure_message(None),
+        (
+            "MessageBox_UnexpectedConfigurationErrorTitle",
+            "MessageBox_UnexpectedConfigurationError"
+        )
+    );
 }
