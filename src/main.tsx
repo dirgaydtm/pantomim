@@ -4,11 +4,13 @@ import { param } from "./dialogs/dialog";
 import MessageBox from "./dialogs/MessageBox";
 import PasswordDialog from "./dialogs/PasswordDialog";
 import Taskbar from "./taskbar/Taskbar";
+import Toolbar from "./toolbar/Toolbar";
 import "./main.css";
 
 // Rust opens each screen as its own webview at index.html#screen=<name>&...
 const screens = {
 	taskbar: Taskbar,
+	toolbar: Toolbar,
 	message: MessageBox,
 	password: PasswordDialog,
 };

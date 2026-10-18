@@ -1,0 +1,75 @@
+.toolbar {
+	display: flex;
+	align-items: center;
+	box-sizing: border-box;
+	height: 42px;
+	margin: 0 5px;
+	padding-bottom: 1px;
+	border-bottom: 1px solid lightgray;
+	background: #f0f0f0;
+}
+
+.browser-button {
+	box-sizing: border-box;
+	flex: none;
+	width: 30px;
+	height: 30px;
+	margin: 5px;
+	padding: 1px;
+	border: 1px solid transparent;
+	background: transparent;
+	cursor: pointer;
+}
+
+.browser-button svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	fill: none;
+	stroke: #000;
+	stroke-width: 70;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.browser-button svg .fill {
+	fill: #000;
+	stroke: none;
+}
+
+.browser-button:hover {
+	background: lightblue;
+	border-color: dodgerblue;
+}
+
+.browser-button:active {
+	border: 2px solid skyblue;
+}
+
+.browser-button:disabled {
+	opacity: 0.25;
+	cursor: default;
+	background: transparent;
+	border: 1px solid transparent;
+}
+
+/* UrlTextBox: Height 25, Margin 5,0, Padding 5,0, fills the remaining width; Aero2 text box. */
+.address {
+	flex: 1;
+	box-sizing: border-box;
+	min-width: 0;
+	height: 25px;
+	margin: 0 5px;
+	padding: 0 5px;
+	border: 1px solid #abadb3;
+	font: inherit;
+	outline: none;
+}
+
+.address:hover {
+	border-color: #7eb4ea;
+}
+
+.address:focus {
+	border-color: #569de5;
+}

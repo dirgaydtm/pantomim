@@ -27,7 +27,7 @@ export function useDialogWindow<T extends HTMLElement>(
 		const element = ref.current;
 		if (!element) return;
 		(async () => {
-			await window.setTitle(textOf("Title"));
+			await window.setTitle(param("title") || textOf("Title"));
 			await setup?.(window);
 			await invoke("fit", {
 				width: element.offsetWidth,

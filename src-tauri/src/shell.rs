@@ -8,17 +8,20 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use plist::Value;
+use plist::{Dictionary, Value};
 use tauri::webview::{DownloadEvent, PageLoadEvent};
 use tauri::window::WindowBuilder;
 use tauri::{
     AppHandle, LogicalPosition, LogicalSize, Manager, State, Webview, WebviewBuilder, WebviewUrl,
     Window,
 };
+use tauri::{Emitter, EventTarget};
 
 use crate::{Session, Start, configuration, launch, session};
 
 const TASKBAR_HEIGHT: i32 = 40;
+// BrowserWindow.xaml toolbar: 30 px buttons with a 5 px margin, the 1 px progress row and border.
+const TOOLBAR_HEIGHT: i32 = 42;
 
 // Dialog pages (src/dialogs); `text` is a text key, whose title is the same key + "Title".
 const CONFIRM_QUIT: &str = "screen=message&text=MessageBox_Quit&icon=question&buttons=yesno";
@@ -29,6 +32,13 @@ const INVALID_QUIT_PASSWORD: &str =
     "screen=message&text=MessageBox_InvalidQuitPassword&icon=warning&buttons=ok";
 const SETTINGS_PASSWORD: &str = "screen=password&text=PasswordDialog_SettingsPasswordRequired";
 const NO_CONFIGURATION: &str = "screen=message&text=NoConfiguration&icon=information&buttons=ok";
+const CONFIRM_HOME: &str =
+    "screen=message&text=MessageBox_BrowserHomeQuestion&icon=question&buttons=yesno";
+const HOME_PASSWORD: &str = "screen=password&text=PasswordDialog_BrowserHomePasswordRequired";
+const INVALID_HOME_PASSWORD: &str =
+    "screen=message&text=MessageBox_InvalidHomePassword&icon=warning&buttons=ok";
+const CONFIRM_RELOAD: &str =
+    "screen=message&text=MessageBox_PageReloadConfirmation&icon=question&buttons=yesno";
 
 /// Opens what the configuration leads to, replacing `old` (a reconfigured exam window) if it opens.
 /// Without `old` this is startup, where a failure or a cancelled password ends pantomim like SEB.
@@ -77,15 +87,28 @@ pub fn start(app: &AppHandle, start: Start, old: Option<Window>) {
     }
 }
 
-/// `hashedQuitPassword` of each exam window that has one.
+/// Settings and start URL of each exam window, for the taskbar and toolbar commands.
 #[derive(Default)]
-pub struct QuitPasswords(Mutex<HashMap<String, String>>);
+pub struct Exams(Mutex<HashMap<String, (Dictionary, String)>>);
+
+fn quit_password(settings: &Dictionary) -> Option<String> {
+    let hash = settings
+        .get("hashedQuitPassword")
+        .and_then(Value::as_string)?;
+    (!hash.is_empty()).then(|| hash.to_string())
+}
 
 /// The taskbar quit button (SEB `ShellResponsibility.TryInitiateShutdown`).
 #[tauri::command]
-pub fn quit(window: Window, passwords: State<QuitPasswords>) {
+pub fn quit(window: Window, exams: State<Exams>) {
     let app = window.app_handle().clone();
-    match passwords.0.lock().unwrap().get(window.label()).cloned() {
+    let settings = exams
+        .0
+        .lock()
+        .unwrap()
+        .get(window.label())
+        .map(|(s, _)| s.clone());
+    match settings.as_ref().and_then(quit_password) {
         Some(hash) => dialog::open(
             &app,
             Some(&window.clone()),
@@ -119,18 +142,9 @@ pub fn open_window(app: &AppHandle, session: Session) -> Result<(), Box<dyn Erro
     let (show_taskbar, show_clock, show_quit) =
         (flag("showTaskBar"), flag("showTime"), flag("allowQuit"));
 
-    let quit_password = session.settings.get("hashedQuitPassword");
-    if let Some(hash) = quit_password
-        .and_then(Value::as_string)
-        .filter(|h| !h.is_empty())
-    {
-        let passwords = app.state::<QuitPasswords>();
-        passwords
-            .0
-            .lock()
-            .unwrap()
-            .insert(label.clone(), hash.into());
-    }
+    let exams = app.state::<Exams>();
+    let exam = (session.settings.clone(), session.start_url.clone());
+    exams.0.lock().unwrap().insert(label.clone(), exam);
 
     let window = WindowBuilder::new(app, &label)
         .title("")
@@ -139,7 +153,21 @@ pub fn open_window(app: &AppHandle, session: Session) -> Result<(), Box<dyn Erro
         .build()?;
     // Linux lays child webviews out itself (see pin_height), so these bounds are placeholders.
     let (origin, size) = (LogicalPosition::new(0, 0), LogicalSize::new(1, 1));
-    window.add_child(exam_page(app, &label, session)?, origin, size)?;
+    let bar = session::toolbar(&session.settings);
+    let mut page = tauri::Url::parse("app:?screen=toolbar").unwrap();
+    page.query_pairs_mut()
+        .append_pair("home", &bar.home.to_string())
+        .append_pair("navigation", &bar.navigation.to_string())
+        .append_pair("reload", &bar.reload.to_string())
+        .append_pair("reloadEnabled", &bar.reload_enabled.to_string())
+        .append_pair("addressBar", &bar.address_bar.to_string())
+        .append_pair("address", &session.start_url);
+    let page = format!("index.html#{}", page.query().unwrap());
+    let toolbar = WebviewBuilder::new(format!("{label}-toolbar"), WebviewUrl::App(page.into()));
+    pin_height(&window.add_child(toolbar, origin, size)?, TOOLBAR_HEIGHT)?;
+    let reload = session::reload(&session.settings);
+    let exam = window.add_child(exam_page(app, &label, session)?, origin, size)?;
+    reload_on_f5(&exam, reload)?;
     if show_taskbar {
         let page = format!("index.html#screen=taskbar&clock={show_clock}&quit={show_quit}");
         let taskbar = WebviewBuilder::new(format!("{label}-taskbar"), WebviewUrl::App(page.into()));
@@ -173,6 +201,9 @@ fn exam_page(
     .initialization_script_for_all_frames(session::js_api(&config_key))
     .on_page_load(move |webview, load| {
         let address = load.url().as_str();
+        // Sent again when the page has loaded: the toolbar may not be listening yet at the start.
+        let toolbar = EventTarget::webview(format!("{}-toolbar", webview.window().label()));
+        let _ = webview.emit_to(toolbar, "address", address);
         if load.event() == PageLoadEvent::Started
             && let Some(title) = session::window_title(&address_settings, Some(address), None)
         {
@@ -226,6 +257,132 @@ fn exam_page(
         }
         _ => true,
     }))
+}
+
+/// F5 on the exam page, as SEB's `KeyboardHandler` handles it: on key release, through
+/// `session::reload`. WebKitGTK has no reload shortcut of its own.
+fn reload_on_f5(exam: &Webview, reload: session::Reload) -> tauri::Result<()> {
+    let page = exam.clone();
+    exam.with_webview(move |webview| {
+        use gtk::prelude::*;
+        webview.inner().connect_key_release_event(move |_, key| {
+            if key.keyval() != gtk::gdk::keys::constants::F5 {
+                return gtk::glib::Propagation::Proceed;
+            }
+            reload_page(&page, &reload);
+            gtk::glib::Propagation::Stop
+        });
+    })
+}
+
+/// The toolbar buttons and address bar (SEB `BrowserWindow` events, handled by the
+/// `WindowResponsibility` and `DisplayResponsibility` methods named below).
+#[tauri::command]
+pub fn browse(window: Window, exams: State<Exams>, action: String, address: Option<String>) {
+    let app = window.app_handle().clone();
+    let exam = app.get_webview(&format!("{}-exam", window.label()));
+    let Some((settings, start_url)) = exams.0.lock().unwrap().get(window.label()).cloned() else {
+        return;
+    };
+    let (Some(exam), bar) = (exam, session::toolbar(&settings)) else {
+        return;
+    };
+    match action.as_str() {
+        "back" if bar.navigation => {
+            let _ = exam.eval("history.back()");
+        }
+        "forward" if bar.navigation => {
+            let _ = exam.eval("history.forward()");
+        }
+        "reload" if bar.reload_enabled => reload_page(&exam, &session::reload(&settings)),
+        "home" if bar.home => go_home(&window, exam, &settings, start_url),
+        // Window_AddressChanged: an invalid address only clears the bar.
+        "address" if bar.address_bar => match address.as_deref().and_then(session::typed_address) {
+            Some(url) => {
+                if let Ok(url) = url.parse() {
+                    let _ = exam.navigate(url);
+                }
+            }
+            None => {
+                let toolbar = EventTarget::webview(format!("{}-toolbar", window.label()));
+                let _ = app.emit_to(toolbar, "address", "");
+            }
+        },
+        _ => {}
+    }
+}
+
+/// `HomeNavigationRequested`: back to the home URL after the quit password or a confirmation;
+/// `restartExamText` replaces the dialog title.
+fn go_home(window: &Window, exam: Webview, settings: &Dictionary, start_url: String) {
+    let text = |key| settings.get(key).and_then(Value::as_string).unwrap_or("");
+    let flag = |key| {
+        settings
+            .get(key)
+            .and_then(Value::as_boolean)
+            .unwrap_or(false)
+    };
+    let url = if flag("restartExamUseStartURL") {
+        start_url
+    } else {
+        text("restartExamURL").to_string()
+    };
+    let Ok(url) = url.parse::<tauri::Url>() else {
+        return;
+    };
+    let mut title = tauri::Url::parse("app:").unwrap();
+    if !text("restartExamText").trim().is_empty() {
+        title
+            .query_pairs_mut()
+            .append_pair("title", text("restartExamText"));
+    }
+    let title = title.query().map(|q| format!("&{q}")).unwrap_or_default();
+    let app = window.app_handle().clone();
+    let password = quit_password(settings).filter(|_| flag("restartExamPasswordProtected"));
+    match password {
+        Some(hash) => {
+            let parent = window.clone();
+            dialog::open(
+                &app,
+                Some(window),
+                &format!("{HOME_PASSWORD}{title}"),
+                move |app, answer| match answer {
+                    Some(p) if session::is_quit_password(&hash, &p) => {
+                        let _ = exam.navigate(url);
+                    }
+                    Some(_) => dialog::open(app, Some(&parent), INVALID_HOME_PASSWORD, |_, _| {}),
+                    None => {}
+                },
+            )
+        }
+        None => dialog::open(
+            &app,
+            Some(window),
+            &format!("{CONFIRM_HOME}{title}"),
+            move |_, answer| {
+                if answer.as_deref() == Some("yes") {
+                    let _ = exam.navigate(url);
+                }
+            },
+        ),
+    }
+}
+
+fn reload_page(page: &Webview, reload: &session::Reload) {
+    match reload {
+        session::Reload::Blocked => {}
+        session::Reload::Now => {
+            let _ = page.reload();
+        }
+        session::Reload::Ask => {
+            let (app, window, page) = (page.app_handle().clone(), page.window(), page.clone());
+            dialog::open(&app, Some(&window), CONFIRM_RELOAD, move |_, answer| {
+                if answer.as_deref() == Some("yes") {
+                    let _ = page.reload();
+                }
+            });
+        }
+    }
 }
 
 /// Tauri packs child webviews into the window's vertical GtkBox, sharing the height equally.

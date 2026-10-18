@@ -1,6 +1,22 @@
 // Texts from SafeExamBrowser.I18n/Data/{id,en}.xml, word for word, chosen like SEB by the system language.
 const texts = {
 	id: {
+		BrowserWindow_BackwardButton: "Mundur",
+		BrowserWindow_ForwardButton: "Maju",
+		BrowserWindow_HomeButton: "Beranda",
+		BrowserWindow_ReloadButton: "Muat ulang",
+		BrowserWindow_UrlTextBox: "Masukkan URL",
+		MessageBox_BrowserHomeQuestion:
+			"Apakah Anda yakin? (Fungsi ini tidak membuat Anda keluar jika Anda masuk ke situs web)",
+		MessageBox_BrowserHomeQuestionTitle: "Kembali ke Awal",
+		MessageBox_InvalidHomePassword: "Kata sandi yang Anda masukkan salah.",
+		MessageBox_InvalidHomePasswordTitle: "Kata Sandi Tidak Valid",
+		PasswordDialog_BrowserHomePasswordRequired:
+			"Masukkan kata sandi keluar/menghidupkan ulang: (Fungsi ini tidak membuat Anda keluar jika Anda masuk ke situs web)",
+		PasswordDialog_BrowserHomePasswordRequiredTitle: "Kembali ke Awal",
+		MessageBox_PageReloadConfirmation:
+			"Apakah Anda ingin memuat ulang halaman saat ini?",
+		MessageBox_PageReloadConfirmationTitle: "Muat Ulang?",
 		MessageBox_InvalidConfigurationData:
 			'Sumber konfigurasi "%%URI%%" berisi data yang tidak valid!',
 		MessageBox_InvalidConfigurationDataTitle: "Kesalahan Konfigurasi",
@@ -36,6 +52,22 @@ const texts = {
 		No: "Tidak",
 	},
 	en: {
+		BrowserWindow_BackwardButton: "Backward",
+		BrowserWindow_ForwardButton: "Forward",
+		BrowserWindow_HomeButton: "Home",
+		BrowserWindow_ReloadButton: "Reload",
+		BrowserWindow_UrlTextBox: "Enter URL",
+		MessageBox_BrowserHomeQuestion:
+			"Are you sure? (This function doesn't log you out if you are logged in on a website)",
+		MessageBox_BrowserHomeQuestionTitle: "Back to Start",
+		MessageBox_InvalidHomePassword: "The password you entered is incorrect.",
+		MessageBox_InvalidHomePasswordTitle: "Invalid Password",
+		PasswordDialog_BrowserHomePasswordRequired:
+			"Enter quit/restart password: (This function doesn't log you out if you are logged in on a website)",
+		PasswordDialog_BrowserHomePasswordRequiredTitle: "Back to Start",
+		MessageBox_PageReloadConfirmation:
+			"Would you like to reload the current page?",
+		MessageBox_PageReloadConfirmationTitle: "Reload?",
 		MessageBox_InvalidConfigurationData:
 			'The configuration resource "%%URI%%" contains invalid data!',
 		MessageBox_InvalidConfigurationDataTitle: "Configuration Error",

@@ -43,9 +43,10 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(shell::dialog::Dialogs::default())
-        .manage(shell::QuitPasswords::default())
+        .manage(shell::Exams::default())
         .invoke_handler(tauri::generate_handler![
             shell::quit,
+            shell::browse,
             shell::dialog::answer,
             shell::dialog::fit
         ])

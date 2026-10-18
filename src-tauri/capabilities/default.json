@@ -3,7 +3,7 @@
   "identifier": "default",
   "description": "Local UI only; exam pages get no IPC",
   "windows": ["dialog-*"],
-  "webviews": ["*-taskbar"],
+  "webviews": ["*-taskbar", "*-toolbar"],
   "permissions": [
     "core:default",
     "core:window:allow-set-title",

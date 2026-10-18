@@ -10,6 +10,9 @@ pub fn is_quit_url(settings: &plist::Dictionary, url: &str) -> bool;
 pub fn js_api(config_key: &str) -> String;
 pub fn is_quit_password(hash: &str, password: &str) -> bool;
 pub fn fullscreen(settings: &plist::Dictionary) -> bool;
+pub fn reload(settings: &plist::Dictionary) -> Reload; // Blocked, Ask or Now
+pub fn toolbar(settings: &plist::Dictionary) -> Toolbar;
+pub fn typed_address(text: &str) -> Option<String>;
 pub fn window_title<'a>(settings: &plist::Dictionary, address: Option<&'a str>, page_title: Option<&'a str>) -> Option<&'a str>;
 ```
 
@@ -54,6 +57,23 @@ SEB `BrowserDataMapper.MapMainWindowMode`: the exam window is fullscreen only wh
 
 SEB `ControlResponsibility`: the exam window title follows `browserWindowShowURL` (default 0). When the page moves to a new address, the title becomes the address for 3 (always) and 2 (before the title). When the page names itself, the title becomes that name unless the policy is 3. `None` keeps the current title.
 
+## `reload`
+
+F5 on the exam page (SEB `KeyboardHandler`, `WindowResponsibility.RequestPageReload`), handled on key release. `browserWindowAllowReload` false blocks it; otherwise `showReloadWarning` asks first with "Reload?" (`MessageBox_PageReloadConfirmation`), or reloads at once when false. Both default to true, and only booleans count. There is no other reload shortcut.
+
+## `toolbar`
+
+The exam window always has SEB's toolbar row (`BrowserWindow.xaml`); unlike SEB, pantomim ignores `enableBrowserWindowToolbar` (user's choice). Its buttons follow `BrowserWindow.ApplySettings` with SEB's defaults:
+
+- Home: `restartExamUseStartURL` true or `restartExamURL` not blank (`DataProcessor`). It asks for the quit password when `restartExamPasswordProtected` is true and there is one, otherwise it confirms; `restartExamText` replaces the dialog title.
+- Back and forward: `allowBrowsingBackForward` (default false).
+- Reload: shown when `showReloadButton` (default false), enabled when `browserWindowAllowReload` (default true); it goes through `reload`.
+- Address bar: `browserWindowAllowAddressBar` (default false); hidden but still taking its space when off.
+
+## `typed_address`
+
+What Enter in the address bar opens (`DisplayResponsibility.Window_AddressChanged`): the text if it is an absolute URL, otherwise `https://` + the text if that is one; anything else clears the bar. SEB passes a scheme-less address to Chromium unchanged; WebKit needs the `https://` it was checked with.
+
 ## Test vectors
 
 1. `user_agent`:
@@ -68,3 +88,6 @@ SEB `ControlResponsibility`: the exam window title follows `browserWindowShowURL
 4. `is_quit_password` with hash `ba7816bf…15ad` (SHA-256 of `abc`, FIPS 180-2): `abc` matches, also against the upper-case hash; `ABC` and `` do not. The Moodle Sandbox writes this same hash for quit password `abc`.
 5. `fullscreen`: `browserViewMode` = integer `1` → true; `0`, `2`, string `"1"`, `true`, or missing → false.
 6. `window_title` with address `https://a.b/x` and title `Quiz`: no setting, 0 or 1 → address keeps the title, title `Quiz`; 2 → address, then `Quiz`; 3 → address, and the page title is ignored.
+7. `reload`: no settings → ask; `showReloadWarning` false → reload now; `browserWindowAllowReload` false → blocked, whatever the warning; `browserWindowAllowReload` = integer `0` → ignored, so ask.
+8. `toolbar`: no settings → every button off, reload enabled; all five settings on (`browserWindowAllowReload` false) → all shown, reload disabled; `restartExamURL` `https://a.b/` → home; `" "` → no home.
+9. `typed_address`: `https://a.b/x` unchanged; `moodle.ub.ac.id/my` → `https://moodle.ub.ac.id/my`; empty and `not a url` → `None`.
