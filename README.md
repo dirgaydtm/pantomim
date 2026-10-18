@@ -33,6 +33,36 @@ The `X-SafeExamBrowser-*` request headers aren't sent yet. Moodle's default setu
 
 pantomim has been tested on KDE Plasma (Wayland).
 
+## Install
+
+Debian, Ubuntu and derivatives:
+
+```sh
+curl -fsSLo /tmp/pantomim.deb https://github.com/dirgaydtm/pantomim/releases/latest/download/pantomim_amd64.deb && sudo apt install /tmp/pantomim.deb
+```
+
+Fedora:
+
+```sh
+sudo dnf install https://github.com/dirgaydtm/pantomim/releases/latest/download/pantomim.x86_64.rpm
+```
+
+These install the latest release once. To get updates with the rest of your system, add the repository instead:
+
+```sh
+# Debian, Ubuntu
+sudo curl -fsSL https://dirgaydtm.github.io/pantomim/key.gpg -o /usr/share/keyrings/pantomim.gpg
+echo "deb [signed-by=/usr/share/keyrings/pantomim.gpg] https://dirgaydtm.github.io/pantomim/deb ./" \
+  | sudo tee /etc/apt/sources.list.d/pantomim.list
+sudo apt update && sudo apt install pantomim
+
+# Fedora
+sudo curl -fsSL https://dirgaydtm.github.io/pantomim/pantomim.repo -o /etc/yum.repos.d/pantomim.repo
+sudo dnf install pantomim
+```
+
+Other distributions can use the AppImage from the [latest release](https://github.com/dirgaydtm/pantomim/releases/latest). It runs without installing, but Moodle's "Launch Safe Exam Browser" button won't open it. An AUR package for Arch Linux is planned.
+
 ## Usage
 
 Like SEB, pantomim always starts with one argument. Either click "Launch Safe Exam Browser" on the Moodle quiz page, or open a downloaded `.seb` file with pantomim. Started without an argument, it just tells you to do one of these.
