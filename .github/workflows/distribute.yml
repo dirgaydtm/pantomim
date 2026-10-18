@@ -14,10 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    # Skipped until the AUR account and its key exist (registration was closed in 2026-10).
+    env:
+      AUR_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
     steps:
       - uses: actions/checkout@v7
 
       - name: Point the PKGBUILD at this release
+        if: env.AUR_KEY != ''
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
@@ -29,12 +33,13 @@ jobs:
             -e "s/^sha256sums=.*/sha256sums=('${sum}')/" packaging/aur/PKGBUILD
 
       - uses: KSXGitHub/github-actions-deploy-aur@084b0d9b15415bf9cdb65d44dad1efe37a354050 # v4.2.0
+        if: env.AUR_KEY != ''
         with:
           pkgname: pantomim-bin
           pkgbuild: packaging/aur/PKGBUILD
           commit_username: Dirga Yuditama
           commit_email: dirgayuditama6@gmail.com
-          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          ssh_private_key: ${{ env.AUR_KEY }}
           commit_message: Update to ${{ github.event.release.tag_name }}
 
   repo:
