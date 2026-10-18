@@ -67,7 +67,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download "${{ github.event.release.tag_name }}" --pattern '*.deb' --pattern '*.rpm' --dir /tmp/packages
+          gh release download "${{ github.event.release.tag_name }}" --pattern 'pantomim_*_amd64.deb' --pattern 'pantomim-*.rpm' --dir /tmp/packages
           sh packaging/repo/build.sh /tmp/packages site "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
 
       - uses: actions/upload-pages-artifact@v3

@@ -57,7 +57,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           bundle=src-tauri/target/release/bundle
+          # Unversioned copies keep releases/latest/download/<name> stable for the README's one-liners.
+          cp "$bundle"/deb/*.deb pantomim_amd64.deb
+          cp "$bundle"/rpm/*.rpm pantomim.x86_64.rpm
           prerelease=$(case "$GITHUB_REF_NAME" in *-*) echo --prerelease;; esac)
           gh release create "$GITHUB_REF_NAME" --draft $prerelease --generate-notes \
             --title "pantomim $GITHUB_REF_NAME" \
-            "$bundle"/deb/*.deb "$bundle"/rpm/*.rpm "$bundle"/appimage/*.AppImage
+            "$bundle"/deb/*.deb "$bundle"/rpm/*.rpm "$bundle"/appimage/*.AppImage \
+            pantomim_amd64.deb pantomim.x86_64.rpm
